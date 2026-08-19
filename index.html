@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>現場日誌 | 今日の気づき</title>
+<style>
+  :root {
+    --ink: #1B2430;
+    --ink-soft: #3A4658;
+    --paper: #EDEAE2;
+    --paper-raised: #F7F5EF;
+    --line: #C9C2B3;
+    --teal: #2C6E6B;
+    --teal-deep: #1E4C4A;
+    --rust: #A94E32;
+    --mono: 'JetBrains Mono', 'Space Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+    min-height: 100vh;
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+  }
+
+  header.masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+  }
+
+  header.masthead .title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  header.masthead .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+  }
+
+  .datestamp {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 8px 0 18px;
+    letter-spacing: 0.04em;
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 18px;
+  }
+
+  nav.tabs button {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--paper-raised);
+    border: 2px solid var(--ink);
+    border-bottom: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    cursor: pointer;
+    position: relative;
+    top: 2px;
+  }
+
+  nav.tabs button.active {
+    background: var(--ink);
+    color: var(--paper-raised);
+    top: 0;
+  }
+
+  .panel {
+    border: 2px solid var(--ink);
+    background: var(--paper-raised);
+    padding: 18px 16px;
+    display: none;
+  }
+
+  .panel.active { display: block; }
+
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--teal-deep);
+    margin: 14px 0 6px;
+    text-transform: uppercase;
+  }
+
+  label:first-child { margin-top: 0; }
+
+  input[type="date"],
+  input[type="text"],
+  textarea {
+    width: 100%;
+    padding: 10px 10px;
+    border: 1.5px solid var(--ink);
+    background: #fff;
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .photo-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .photo-slot {
+    width: 84px;
+    height: 84px;
+    border: 1.5px dashed var(--line);
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .photo-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .photo-slot .remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--rust);
+    color: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  #photoInput { display: none; }
+
+  .submit-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 14px;
+    background: var(--teal);
+    color: #fff;
+    border: 2px solid var(--teal-deep);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+
+  .submit-btn:active { background: var(--teal-deep); }
+  .submit-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .status-msg {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--teal-deep);
+    min-height: 16px;
+  }
+
+  .status-msg.error { color: var(--rust); }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .search-row input[type="text"] { flex: 1; }
+
+  .search-row button {
+    padding: 0 16px;
+    background: var(--ink);
+    color: var(--paper-raised);
+    border: 1.5px solid var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .date-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .date-filter input { flex: 1; }
+
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .entry-card {
+    border: 1.5px solid var(--ink);
+    background: var(--paper-raised);
+    padding: 14px 14px 14px 22px;
+    position: relative;
+  }
+
+  .entry-card::before {
+    content: '';
+    position: absolute;
+    left: -1.5px;
+    top: 16px;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    background: var(--paper);
+  }
+
+  .entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .entry-head .who {
+    font-weight: 700;
+    color: var(--teal-deep);
+  }
+
+  .entry-content {
+    font-size: 14.5px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+  }
+
+  .entry-photos {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .entry-photos img {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border: 1.5px solid var(--ink);
+    cursor: pointer;
+  }
+
+  .empty-state {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 30px 10px;
+    border: 1.5px dashed var(--line);
+  }
+
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 20, 0.9);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; }
+
+  .config-warning {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--rust);
+    border: 1.5px dashed var(--rust);
+    padding: 10px;
+    margin-bottom: 16px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="masthead">
+    <div class="title">現場日誌</div>
+    <div class="sub">TODAY'S NOTICE LOG</div>
+  </header>
+  <div class="datestamp" id="todayStamp"></div>
+
+  <div class="config-warning" id="configWarning">
+    ⚠ API_URL が未設定です。index.html 内の CONFIG.API_URL に、GASウェブアプリのURLを設定してください。
+  </div>
+
+  <nav class="tabs">
+    <button class="active" data-tab="record">記録する</button>
+    <button data-tab="search">さがす</button>
+  </nav>
+
+  <!-- 記録パネル -->
+  <section class="panel active" id="panel-record">
+    <label for="dateInput">日付</label>
+    <input type="date" id="dateInput">
+
+    <label for="nameInput">氏名</label>
+    <input type="text" id="nameInput" placeholder="例: 盛田">
+
+    <label for="contentInput">今日の気づき</label>
+    <textarea id="contentInput" placeholder="今日の作業で気づいたこと、改善のヒント、ヒヤリハットなどを書いてください"></textarea>
+
+    <label>写真(最大3枚)</label>
+    <div class="photo-row" id="photoRow">
+      <div class="photo-slot" data-slot="0">＋<br>追加</div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" capture="environment">
+
+    <button class="submit-btn" id="submitBtn">この気づきを記録する</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </section>
+
+  <!-- 検索パネル -->
+  <section class="panel" id="panel-search">
+    <div class="search-row">
+      <input type="text" id="keywordInput" placeholder="キーワードで検索(内容・氏名)">
+      <button id="searchBtn">検索</button>
+    </div>
+    <div class="date-filter">
+      <input type="date" id="fromInput">
+      <input type="date" id="toInput">
+    </div>
+    <div class="entry-list" id="entryList">
+      <div class="empty-state">読み込み中…</div>
+    </div>
+  </section>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+  // ==========================================================
+  // 設定: GASウェブアプリのURLをここに設定してください
+  // ==========================================================
+  var CONFIG = {
+    API_URL: 'https://script.google.com/macros/s/AKfycbz62HSIS8wnjWVmaXE0alSWafbIPmDX5-2Tl6SNYbkTjE31s_s7BO98OyXJqsAEcwNv/exec'
+  };
+
+  var MAX_PHOTOS = 3;
+  var MAX_DIM = 1600;
+  var JPEG_QUALITY = 0.8;
+
+  var photos = []; // { dataUrl, base64, mimeType }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('http') !== 0) {
+      document.getElementById('configWarning').style.display = 'block';
+    }
+
+    var today = new Date();
+    document.getElementById('dateInput').value = formatDate(today);
+    document.getElementById('todayStamp').textContent = formatDateLong(today);
+
+    setupTabs();
+    setupPhotoPicker();
+    document.getElementById('submitBtn').addEventListener('click', submitEntry);
+    document.getElementById('searchBtn').addEventListener('click', function () { loadEntries(); });
+    document.getElementById('keywordInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') loadEntries();
+    });
+    document.getElementById('lightbox').addEventListener('click', function () {
+      this.classList.remove('active');
+    });
+
+    loadEntries();
+  });
+
+  function formatDate(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function formatDateLong(d) {
+    var days = ['日', '月', '火', '水', '木', '金', '土'];
+    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日(' + days[d.getDay()] + ')';
+  }
+
+  function setupTabs() {
+    var buttons = document.querySelectorAll('nav.tabs button');
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        buttons.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+  }
+
+  function setupPhotoPicker() {
+    var input = document.getElementById('photoInput');
+    input.addEventListener('change', function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      resizeImage(file, function (dataUrl, base64, mimeType) {
+        photos.push({ dataUrl: dataUrl, base64: base64, mimeType: mimeType });
+        renderPhotoRow();
+      });
+      input.value = '';
+    });
+    renderPhotoRow();
+  }
+
+  function renderPhotoRow() {
+    var row = document.getElementById('photoRow');
+    row.innerHTML = '';
+
+    photos.forEach(function (p, i) {
+      var slot = document.createElement('div');
+      slot.className = 'photo-slot';
+      slot.innerHTML = '<img src="' + p.dataUrl + '"><div class="remove" data-i="' + i + '">×</div>';
+      row.appendChild(slot);
+    });
+
+    if (photos.length < MAX_PHOTOS) {
+      var addSlot = document.createElement('div');
+      addSlot.className = 'photo-slot';
+      addSlot.innerHTML = '＋<br>追加';
+      addSlot.addEventListener('click', function () {
+        document.getElementById('photoInput').click();
+      });
+      row.appendChild(addSlot);
+    }
+
+    row.querySelectorAll('.remove').forEach(function (el) {
+      el.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var i = parseInt(this.dataset.i, 10);
+        photos.splice(i, 1);
+        renderPhotoRow();
+      });
+    });
+  }
+
+  function resizeImage(file, callback) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.width, h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+          else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        var dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        var base64 = dataUrl.split(',')[1];
+        callback(dataUrl, base64, 'image/jpeg');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function submitEntry() {
+    var date = document.getElementById('dateInput').value;
+    var name = document.getElementById('nameInput').value.trim();
+    var content = document.getElementById('contentInput').value.trim();
+    var statusEl = document.getElementById('statusMsg');
+
+    if (!date || !content) {
+      statusEl.textContent = '日付と気づきの内容は必須です。';
+      statusEl.className = 'status-msg error';
+      return;
+    }
+
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    statusEl.className = 'status-msg';
+    statusEl.textContent = '送信中…';
+
+    var payload = {
+      action: 'add',
+      date: date,
+      name: name,
+      content: content,
+      photos: photos.map(function (p) { return { data: p.base64, mimeType: p.mimeType }; })
+    };
+
+    fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        if (data.ok) {
+          statusEl.textContent = '記録しました。';
+          document.getElementById('contentInput').value = '';
+          photos = [];
+          renderPhotoRow();
+          loadEntries();
+        } else {
+          statusEl.textContent = 'エラー: ' + (data.error || '不明なエラー');
+          statusEl.className = 'status-msg error';
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        statusEl.textContent = '通信エラー: ' + err;
+        statusEl.className = 'status-msg error';
+      });
+  }
+
+  function loadEntries() {
+    var listEl = document.getElementById('entryList');
+    listEl.innerHTML = '<div class="empty-state">読み込み中…</div>';
+
+    var keyword = document.getElementById('keywordInput').value.trim();
+    var from = document.getElementById('fromInput').value;
+    var to = document.getElementById('toInput').value;
+
+    var url = CONFIG.API_URL + '?action=list';
+    if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+    if (from) url += '&from=' + encodeURIComponent(from);
+    if (to) url += '&to=' + encodeURIComponent(to);
+
+    fetch(url)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          listEl.innerHTML = '<div class="empty-state">エラー: ' + (data.error || '不明') + '</div>';
+          return;
+        }
+        renderEntries(data.entries);
+      })
+      .catch(function (err) {
+        listEl.innerHTML = '<div class="empty-state">通信エラー: ' + err + '</div>';
+      });
+  }
+
+  function renderEntries(entries) {
+    var listEl = document.getElementById('entryList');
+    if (!entries.length) {
+      listEl.innerHTML = '<div class="empty-state">記録が見つかりません。</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var card = document.createElement('div');
+      card.className = 'entry-card';
+
+      var head = document.createElement('div');
+      head.className = 'entry-head';
+      head.innerHTML = '<span>' + escapeHtml(entry.date) + '</span><span class="who">' + escapeHtml(entry.name || '匿名') + '</span>';
+      card.appendChild(head);
+
+      var content = document.createElement('div');
+      content.className = 'entry-content';
+      content.textContent = entry.content;
+      card.appendChild(content);
+
+      if (entry.photos && entry.photos.length) {
+        var photoWrap = document.createElement('div');
+        photoWrap.className = 'entry-photos';
+        entry.photos.forEach(function (url) {
+          var img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', function () {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightbox').classList.add('active');
+          });
+          photoWrap.appendChild(img);
+        });
+        card.appendChild(photoWrap);
+      }
+
+      listEl.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+</script>
+
+</body>
+</html>
