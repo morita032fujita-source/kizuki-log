@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -625,16 +625,23 @@
 
       if (entry.photos && entry.photos.length) {
         var photoWrap = document.createElement('div');
-        photoWrap.className = 'entry-photos';
         entry.photos.forEach(function (url) {
-          var img = document.createElement('img');
-          img.src = toDriveEmbed(url);
-          img.addEventListener('click', function () {
-            document.getElementById('lightboxImg').src = url;
-            document.getElementById('lightbox').classList.add('active');
-          });
-          photoWrap.appendChild(img);
-        });
+        var img = document.createElement('img');
+        img.alt = '読み込み中';
+        var m = url.match(/[?&]id=([^&]+)/);
+        if (m) {
+          fetch(CONFIG.API_URL + '?action=img&id=' + m[1])
+            .then(function(r){ return r.json(); })
+            .then(function(d){ if(d.ok) img.src = d.dataUrl; });
+      } else {
+      img.src = url;
+  }
+  img.addEventListener('click', function () {
+    document.getElementById('lightboxImg').src = img.src;
+    document.getElementById('lightbox').classList.add('active');
+  });
+  photoWrap.appendChild(img);
+});
         card.appendChild(photoWrap);
       }
 
@@ -644,7 +651,8 @@
 function toDriveEmbed(url) {
   var m = url.match(/[?&]id=([^&]+)/);
   if (m) {
-    return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400';
+    // GASプロキシ経由で取得
+    return CONFIG.API_URL + '?action=img&id=' + m[1];
   }
   return url;
 }
