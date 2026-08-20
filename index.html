@@ -628,7 +628,7 @@
         photoWrap.className = 'entry-photos';
         entry.photos.forEach(function (url) {
           var img = document.createElement('img');
-          img.src = url;
+          img.src = toDriveEmbed(url);
           img.addEventListener('click', function () {
             document.getElementById('lightboxImg').src = url;
             document.getElementById('lightbox').classList.add('active');
@@ -641,7 +641,13 @@
       listEl.appendChild(card);
     });
   }
-
+function toDriveEmbed(url) {
+  var m = url.match(/[?&]id=([^&]+)/);
+  if (m) {
+    return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400';
+  }
+  return url;
+}
   function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str || '';
