@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -399,11 +399,11 @@
   // 設定: GASウェブアプリのURLをここに設定してください
   // ==========================================================
   var CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbzN0pvf9Wmhz7XQVwS3sD_MS2Nkg0OyLRPo7m21c6zWEdUuKh1nri7flwG9lK46jjET/exec'
+    API_URL: 'https://drive.google.com/drive/folders/1qNiDmyBiL-5XGnmIqHKxyKO5q5j4-L3W'
   };
 
   var MAX_PHOTOS = 3;
-  var MAX_DIM = 1000;
+  var MAX_DIM = 1100;
   var JPEG_QUALITY = 0.6;
 
   var photos = []; // { dataUrl, base64, mimeType }
@@ -625,37 +625,41 @@
 
       if (entry.photos && entry.photos.length) {
         var photoWrap = document.createElement('div');
+        photoWrap.className = 'entry-photos';
         entry.photos.forEach(function (url) {
-        var img = document.createElement('img');
-        img.alt = '読み込み中';
-        var m = url.match(/[?&]id=([^&]+)/);
-        if (m) {
-          fetch(CONFIG.API_URL + '?action=img&id=' + m[1])
-            .then(function(r){ return r.json(); })
-            .then(function(d){ if(d.ok) img.src = d.dataUrl; });
-      } else {
-      img.src = url;
-  }
-  img.addEventListener('click', function () {
-    document.getElementById('lightboxImg').src = img.src;
-    document.getElementById('lightbox').classList.add('active');
-  });
-  photoWrap.appendChild(img);
-});
+          var img = document.createElement('img');
+          img.alt = '読込中';
+          var m = url.match(/[?&]id=([^&]+)/);
+          if (m) {
+            var fileId = m[1];
+            fetch(CONFIG.API_URL + '?action=img&id=' + fileId)
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (d.ok) {
+                  img.src = d.dataUrl;
+                  img.addEventListener('click', function () {
+                    document.getElementById('lightboxImg').src = d.dataUrl;
+                    document.getElementById('lightbox').classList.add('active');
+                  });
+                }
+              })
+              .catch(function () { img.alt = '読込失敗'; });
+          } else {
+            img.src = url;
+            img.addEventListener('click', function () {
+              document.getElementById('lightboxImg').src = url;
+              document.getElementById('lightbox').classList.add('active');
+            });
+          }
+          photoWrap.appendChild(img);
+        });
         card.appendChild(photoWrap);
       }
 
       listEl.appendChild(card);
     });
   }
-function toDriveEmbed(url) {
-  var m = url.match(/[?&]id=([^&]+)/);
-  if (m) {
-    // GASプロキシ経由で取得
-    return CONFIG.API_URL + '?action=img&id=' + m[1];
-  }
-  return url;
-}
+
   function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str || '';
