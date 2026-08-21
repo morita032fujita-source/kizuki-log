@@ -301,6 +301,93 @@
     cursor: pointer;
   }
 
+  .entry-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .entry-actions button {
+    padding: 5px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: 1.5px solid var(--ink);
+  }
+
+  .btn-edit {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .btn-delete {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust) !important;
+  }
+
+  /* 編集モーダル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,20,0.7);
+    z-index: 60;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--paper-raised);
+    border: 2px solid var(--ink);
+    padding: 20px 18px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--teal-deep);
+    margin-bottom: 16px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid var(--ink);
+  }
+
+  .btn-save {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal-deep) !important;
+  }
+
+  .btn-cancel {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
   .empty-state {
     font-family: var(--mono);
     font-size: 12px;
@@ -394,12 +481,31 @@
   <img id="lightboxImg" src="" alt="">
 </div>
 
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏ 記録を編集する</div>
+    <input type="hidden" id="editId">
+    <label for="editDate">日付</label>
+    <input type="date" id="editDate">
+    <label for="editName">氏名</label>
+    <input type="text" id="editName">
+    <label for="editContent">今日の気づき</label>
+    <textarea id="editContent" style="min-height:140px"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="editCancelBtn">キャンセル</button>
+      <button class="btn-save" id="editSaveBtn">保存する</button>
+    </div>
+    <div class="status-msg" id="editStatusMsg"></div>
+  </div>
+</div>
+
 <script>
   // ==========================================================
   // 設定: GASウェブアプリのURLをここに設定してください
   // ==========================================================
   var CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbzN0pvf9Wmhz7XQVwS3sD_MS2Nkg0OyLRPo7m21c6zWEdUuKh1nri7flwG9lK46jjET/exec'
+    API_URL: 'ここにGASウェブアプリのURLを貼り付け'
   };
 
   var MAX_PHOTOS = 3;
@@ -427,6 +533,12 @@
     document.getElementById('lightbox').addEventListener('click', function () {
       this.classList.remove('active');
     });
+
+    document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+    document.getElementById('editModal').addEventListener('click', function (e) {
+      if (e.target === this) closeEditModal();
+    });
+    document.getElementById('editSaveBtn').addEventListener('click', saveEdit);
 
     loadEntries();
   });
@@ -656,8 +768,105 @@
         card.appendChild(photoWrap);
       }
 
+      // 編集・削除ボタン
+      var actions = document.createElement('div');
+      actions.className = 'entry-actions';
+
+      var editBtn = document.createElement('button');
+      editBtn.className = 'btn-edit';
+      editBtn.textContent = '✏ 編集';
+      editBtn.addEventListener('click', function () { openEditModal(entry); });
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete';
+      delBtn.textContent = '🗑 削除';
+      delBtn.addEventListener('click', function () { deleteEntry(entry.id, card); });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      card.appendChild(actions);
+
       listEl.appendChild(card);
     });
+  }
+
+  function openEditModal(entry) {
+    document.getElementById('editId').value = entry.id;
+    document.getElementById('editDate').value = entry.date || '';
+    document.getElementById('editName').value = entry.name || '';
+    document.getElementById('editContent').value = entry.content || '';
+    document.getElementById('editStatusMsg').textContent = '';
+    document.getElementById('editModal').classList.add('active');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+  }
+
+  function saveEdit() {
+    var id = document.getElementById('editId').value;
+    var date = document.getElementById('editDate').value;
+    var name = document.getElementById('editName').value.trim();
+    var content = document.getElementById('editContent').value.trim();
+    var statusEl = document.getElementById('editStatusMsg');
+
+    if (!date || !content) {
+      statusEl.textContent = '日付と気づきの内容は必須です。';
+      statusEl.className = 'status-msg error';
+      return;
+    }
+
+    var saveBtn = document.getElementById('editSaveBtn');
+    saveBtn.disabled = true;
+    statusEl.className = 'status-msg';
+    statusEl.textContent = '保存中…';
+
+    fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'update', id: id, date: date, name: name, content: content })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        saveBtn.disabled = false;
+        if (data.ok) {
+          closeEditModal();
+          loadEntries();
+        } else {
+          statusEl.textContent = 'エラー: ' + (data.error || '不明');
+          statusEl.className = 'status-msg error';
+        }
+      })
+      .catch(function (err) {
+        saveBtn.disabled = false;
+        statusEl.textContent = '通信エラー: ' + err;
+        statusEl.className = 'status-msg error';
+      });
+  }
+
+  function deleteEntry(id, card) {
+    if (!confirm('この記録を削除しますか？\n（写真はGoogleドライブ上に残ります）')) return;
+
+    card.style.opacity = '0.4';
+
+    fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: id })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          loadEntries();
+        } else {
+          card.style.opacity = '1';
+          alert('削除できませんでした: ' + (data.error || '不明'));
+        }
+      })
+      .catch(function (err) {
+        card.style.opacity = '1';
+        alert('通信エラー: ' + err);
+      });
   }
 
   function escapeHtml(str) {
